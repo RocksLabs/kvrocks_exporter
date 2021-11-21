@@ -48,9 +48,9 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 			continue
 		}
 
-		split := strings.SplitN(line, ":", 2)
-		fieldKey := split[0]
-		fieldValue := split[1]
+		index := strings.LastIndexByte(line, ':')
+		fieldKey := line[0:index]
+		fieldValue := line[index+1:]
 
 		keyValues[fieldKey] = fieldValue
 
@@ -251,6 +251,8 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 func (e *Exporter) handleMetricsRocksDB(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	prefixs := []string{
 		"block_cache_usage", "block_cache_pinned_usage", "index_and_filter_cache_usage", "estimate_keys",
+		"level0_file_limit_slowdown", "level0_file_limit_stop", "pending_compaction_bytes_slowdown",
+		"pending_compaction_bytes_stop", "memtable_count_limit_slowdown", "memtable_count_limit_stop",
 	}
 	for _, prefix := range prefixs {
 		// format like `block_cache_usage[default]:0`
@@ -259,7 +261,7 @@ func (e *Exporter) handleMetricsRocksDB(ch chan<- prometheus.Metric, fieldKey st
 			if len(fields) != 2 {
 				continue
 			}
-			metricName := fields[0]
+			metricName := strings.TrimRight(fields[0], ":")
 			columnFamily := strings.TrimRight(fields[1], "]")
 			if statValue, err := strconv.ParseFloat(fieldValue, 64); err == nil {
 				e.registerConstMetricGauge(ch, metricName, statValue, columnFamily)

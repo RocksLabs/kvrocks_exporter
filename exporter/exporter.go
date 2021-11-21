@@ -147,6 +147,11 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 			"instantaneous_ops_per_sec": "instantaneous_ops_per_sec",
 			"is_bgsaving":               "is_bgsaving",
 			"is_compacting":             "is_compacting",
+			"put_per_sec":               "put_per_sec",
+			"get_per_sec":               "get_per_sec",
+			"seek_per_sec":              "seek_per_sec",
+			"next_per_sec":              "next_per_sec",
+			"prev_per_sec":              "prev_per_sec",
 		},
 
 		metricMapCounters: map[string]string{
