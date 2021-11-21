@@ -117,6 +117,14 @@ The `targets-kvrocks-instances.json` should look something like this:
 
 Prometheus uses file watches and all changes to the json file are applied immediately.
 
+## What it looks like
+Kvrocks Grafana dashboard template is available on [Grafana.com](https://grafana.com/grafana/dashboards/15286) and imports
+the Dashboard with ID `15286` or download the JSON file.
+
+Example Grafana screenshots:
+![Grafana Example](https://grafana.com/api/dashboards/15286/images/11310/image)
+
+
 ## Communal effort
 
 Open an issue or PR if you have more suggestions, questions or ideas about what to add.
