@@ -33,6 +33,7 @@ func (e *Exporter) configureOptions(uri string) ([]redis.DialOption, error) {
 
 func (e *Exporter) connectToKvrocks() (redis.Conn, error) {
 	uri := e.kvrocksAddr
+	uri = strings.Replace(uri, "kvrocks://", "redis://", 1)
 	if !strings.Contains(uri, "://") {
 		uri = "redis://" + uri
 	}
