@@ -44,7 +44,6 @@ as a relabel config to the corresponding scrape config. As per the regex value, 
 
 Similar approaches can be taken with [other role types](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config) depending on how scrape targets are retrieved.
 
-
 ### Prometheus Configuration to Scrape Multiple Kvrocks Hosts
 
 Run the exporter with the command line flag `--kvrocks.addr=` so it won't try to access the local instance every time the `/metrics` endpoint is scraped.
@@ -116,6 +115,13 @@ The `targets-kvrocks-instances.json` should look something like this:
 ```
 
 Prometheus uses file watches and all changes to the json file are applied immediately.
+
+## For Grafana 8.x
+
+For Grafana 8.x, the default Prometheus data store access mode was `Server` which may have
+the CORS issue, you can workaround this by choosing the `browser` mode or fix the CORS problem.
+
+![image](https://user-images.githubusercontent.com/4987594/143570291-e4882b52-3a7a-4482-8bf1-ca6539a6b14c.png)
 
 ## What it looks like
 Kvrocks Grafana dashboard template is available on [Grafana.com](https://grafana.com/grafana/dashboards/15286) and imports
