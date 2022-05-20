@@ -1,0 +1,44 @@
+project_name: kvrocks-exporter
+release:
+  github:
+    owner: KvrocksLabs
+    name: kvrocks_exporter
+
+builds:
+  - id: kvrocks-exporter
+    binary: kvrocks_exporter
+    ldflags:
+      - "-X main.BuildVersion={{ .Version }}"
+      - "-X main.BuildDate={{.Date}}"
+      - "-X main.BuildCommitSha={{.Commit}}"
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+dockers:
+  - id: kvrocks-exporter-docker-amd64
+    goos: linux
+    goarch: amd64
+    ids:
+      - kvrocks-exporter
+    image_templates:
+      - "kvrocks/kvrocks-exporter:v{{ .Version }}-amd64"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    use: buildx
+  - id: kvrocks-exporter-docker-arm64
+    goos: linux
+    goarch: arm64
+    ids:
+      - kvrocks-exporter
+    image_templates:
+      - "kvrocks/kvrocks-exporter:v{{ .Version }}-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    use: buildx
+docker_manifests:
+  - name_template: kvrocks/kvrocks-exporter:v{{ .Version }}
+    image_templates:
+      - kvrocks/kvrocks-exporter:v{{ .Version }}-amd64
+      - kvrocks/kvrocks-exporter:v{{ .Version }}-arm64
