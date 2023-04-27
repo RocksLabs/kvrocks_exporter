@@ -1,4 +1,4 @@
-module github.com/KvrocksLabs/kvrocks_exporter
+module github.com/RocksLabs/kvrocks_exporter
 
 go 1.16
 

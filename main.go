@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_exporter/exporter"
+	"github.com/RocksLabs/kvrocks_exporter/exporter"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )

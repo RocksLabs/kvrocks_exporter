@@ -7,7 +7,7 @@ This is a fork of oliver006/redis_exporter to export the kvrocks metrics.
 ### Build and run locally
 
 ```sh
-git clone https://github.com/KvrocksLabs/kvrocks_exporter.git
+git clone https://github.com/RocksLabs/kvrocks_exporter.git
 cd kvrocks_exporter
 go build .
 ./kvrocks_exporter --version
