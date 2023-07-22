@@ -67,16 +67,15 @@ upload-coverage:
 
 BUILD_DT:=$(shell date +%F-%T)
 GO_LDFLAGS:="-s -w -extldflags \"-static\" -X main.BuildVersion=${DRONE_TAG} -X main.BuildCommitSha=${DRONE_COMMIT_SHA} -X main.BuildDate=$(BUILD_DT)" 
+OS ?= linux
+ARCH ?= amd64
 
 .PHONE: build-binaries
 build-binaries:
-	go get github.com/oliver006/gox@master
+	go install github.com/oliver006/gox@master
 
 	rm -rf .build | true
 
 	export CGO_ENABLED=0 ; \
-	gox -os="linux windows freebsd netbsd openbsd"        -arch="amd64 386" -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/redis_exporter-${DRONE_TAG}.{{.OS}}-{{.Arch}}/{{.Dir}}" && \
-	gox -os="darwin solaris illumos"                      -arch="amd64"     -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/redis_exporter-${DRONE_TAG}.{{.OS}}-{{.Arch}}/{{.Dir}}" && \
-	gox -os="linux freebsd netbsd"                        -arch="arm"       -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/redis_exporter-${DRONE_TAG}.{{.OS}}-{{.Arch}}/{{.Dir}}" && \
-	gox -os="linux" -arch="arm64 mips64 mips64le ppc64 ppc64le s390x"       -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/redis_exporter-${DRONE_TAG}.{{.OS}}-{{.Arch}}/{{.Dir}}" && \
+	gox -os=$(OS) -arch=$(ARCH) -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/kvrocks_exporter" && \
 	echo "done"
