@@ -127,7 +127,7 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 }
 
 /*
-	valid example: db0:keys=1,expires=0,avg_ttl=0
+valid example: db0:keys=1,expires=0,avg_ttl=0
 */
 func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64, keysExpiringTotal float64, avgTTL float64, ok bool) {
 	log.Debugf("parseDBKeyspaceString inputKey: [%s] inputVal: [%s]", inputKey, inputVal)
@@ -138,7 +138,7 @@ func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64,
 	}
 
 	split := strings.Split(inputVal, ",")
-	if len(split) != 4 {
+	if len(split) != 3 {
 		log.Debugf("parseDBKeyspaceString strings.Split(inputVal) invalid: %#v", split)
 		return
 	}
@@ -167,8 +167,8 @@ func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64,
 }
 
 /*
-	slave0:ip=10.254.11.1,port=6379,state=online,offset=1751844676,lag=0
-	slave1:ip=10.254.11.2,port=6379,state=online,offset=1751844222,lag=0
+slave0:ip=10.254.11.1,port=6379,state=online,offset=1751844676,lag=0
+slave1:ip=10.254.11.2,port=6379,state=online,offset=1751844222,lag=0
 */
 func parseConnectedSlaveString(slaveName string, keyValues string) (offset float64, ip string, port string, state string, lag float64, ok bool) {
 	ok = false
