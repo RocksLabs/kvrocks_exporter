@@ -29,15 +29,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: build and publish image
-        env:
-          DOCKER_REPO: docker.io/${{ secrets.DOCKER_USERNAME }}/kvrocks-exporter
         run: |
           docker buildx build \
           --platform linux/amd64,linux/arm64 \
-          --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/kvrocks-exporter" \
+          --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/kvrocks_exporter" \
           --label "org.opencontainers.image.description=kvrocks-exporter image" \
           --label "org.opencontainers.image.licenses=Apache-2.0" \
           --push \
-          -t ${DOCKER_REPO}:latest \
+          -t docker.io/kvrocks/kvrocks_exporter:latest \
           -f Dockerfile \
           .
