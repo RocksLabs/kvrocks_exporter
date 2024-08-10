@@ -14,10 +14,10 @@ import (
 
 func TestKeyspaceStringParser(t *testing.T) {
 	tsts := []struct {
-		db                        string
-		stats                     string
-		keysTotal, keysEx, avgTTL float64
-		ok                        bool
+		db                                     string
+		stats                                  string
+		keysTotal, keysEx, avgTTL, keysExpired float64
+		ok                                     bool
 	}{
 		{db: "xxx", stats: "", ok: false},
 		{db: "xxx", stats: "keys=1,expires=0,avg_ttl=0", ok: false},
@@ -28,20 +28,20 @@ func TestKeyspaceStringParser(t *testing.T) {
 		{db: "db3", stats: "keys=abcde,expires=0", ok: false},
 		{db: "db3", stats: "keys=213,expires=xxx", ok: false},
 		{db: "db3", stats: "keys=123,expires=0,avg_ttl=zzz", ok: false},
-
-		{db: "db0", stats: "keys=1,expires=0,avg_ttl=0", keysTotal: 1, keysEx: 0, avgTTL: 0, ok: true},
+		{db: "db0", stats: "keys=22113592,expires=21683101,avg_ttl=3816396,expired=340250", keysTotal: 22113592, keysEx: 21683101, avgTTL: 3816.396, keysExpired: 340250, ok: true},
+		{db: "db0", stats: "keys=1,expires=0,avg_ttl=0", keysTotal: 1, keysEx: 0, avgTTL: 0, keysExpired: 0, ok: true},
 	}
 
 	for _, tst := range tsts {
-		if kt, kx, ttl, ok := parseDBKeyspaceString(tst.db, tst.stats); true {
+		if kt, kx, ttl, kexp, ok := parseDBKeyspaceString(tst.db, tst.stats); true {
 
 			if ok != tst.ok {
 				t.Errorf("failed for: db:%s stats:%s", tst.db, tst.stats)
 				continue
 			}
 
-			if ok && (kt != tst.keysTotal || kx != tst.keysEx || ttl != tst.avgTTL) {
-				t.Errorf("values not matching, db:%s stats:%s   %f %f %f", tst.db, tst.stats, kt, kx, ttl)
+			if ok && (kt != tst.keysTotal || kx != tst.keysEx || ttl != tst.avgTTL || kexp != tst.keysExpired) {
+				t.Errorf("values not matching, db:%s stats:%s   %f %f %f", tst.db, tst.stats, kt, kx, ttl, kexp)
 			}
 		}
 	}

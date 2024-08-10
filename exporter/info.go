@@ -36,7 +36,7 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		line = strings.TrimSpace(line)
 		log.Debugf("info: %s", line)
 		if len(line) > 0 && strings.HasPrefix(line, "# ") {
-			if strings.HasPrefix(line, "# Last scan db time") {
+			if strings.HasPrefix(line, "# Last DBSIZE SCAN") {
 				continue
 			}
 			fieldClass = line[2:]
@@ -77,11 +77,12 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 			continue
 
 		case "Keyspace":
-			if keysTotal, keysEx, avgTTL, ok := parseDBKeyspaceString(fieldKey, fieldValue); ok {
+			if keysTotal, keysEx, avgTTL, keysExpired, ok := parseDBKeyspaceString(fieldKey, fieldValue); ok {
 				dbName := fieldKey
 
 				e.registerConstMetricGauge(ch, "db_keys", keysTotal, dbName)
 				e.registerConstMetricGauge(ch, "db_keys_expiring", keysEx, dbName)
+				e.registerConstMetricGauge(ch, "db_keys_expired", keysExpired, dbName)
 
 				if avgTTL > -1 {
 					e.registerConstMetricGauge(ch, "db_avg_ttl_seconds", avgTTL, dbName)
@@ -105,6 +106,7 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		if _, exists := handledDBs[dbName]; !exists {
 			e.registerConstMetricGauge(ch, "db_keys", 0, dbName)
 			e.registerConstMetricGauge(ch, "db_keys_expiring", 0, dbName)
+			e.registerConstMetricGauge(ch, "db_keys_expired", 0, dbName)
 		}
 	}
 
@@ -127,9 +129,11 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 }
 
 /*
-valid example: db0:keys=1,expires=0,avg_ttl=0
+valid examples:
+  - db0:keys=1,expires=0,avg_ttl=0
+  - db0:keys=1,expires=10,avg_ttl=0,expired=2
 */
-func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64, keysExpiringTotal float64, avgTTL float64, ok bool) {
+func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64, keysExpiringTotal float64, avgTTL float64, keysExpiredTotal float64, ok bool) {
 	log.Debugf("parseDBKeyspaceString inputKey: [%s] inputVal: [%s]", inputKey, inputVal)
 
 	if !strings.HasPrefix(inputKey, "db") {
@@ -138,7 +142,7 @@ func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64,
 	}
 
 	split := strings.Split(inputVal, ",")
-	if len(split) != 3 {
+	if len(split) < 2 || len(split) > 4 {
 		log.Debugf("parseDBKeyspaceString strings.Split(inputVal) invalid: %#v", split)
 		return
 	}
@@ -160,6 +164,14 @@ func parseDBKeyspaceString(inputKey string, inputVal string) (keysTotal float64,
 			return
 		}
 		avgTTL /= 1000
+	}
+
+	keysExpiredTotal = 0
+	if len(split) > 3 {
+		if keysExpiredTotal, err = extractVal(split[3]); err != nil {
+			log.Debugf("parseDBKeyspaceString extractVal(split[3]) invalid, err: %s", err)
+			return
+		}
 	}
 
 	ok = true

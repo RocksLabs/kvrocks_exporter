@@ -104,7 +104,6 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 			"monitor_clients":   "monitor_clients",
 
 			// # Memory
-
 			"used_memory":     "memory_used_bytes",
 			"used_memory_rss": "memory_used_rss_bytes",
 			"used_memory_lua": "memory_used_lua_bytes",
@@ -186,6 +185,7 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		"db_avg_ttl_seconds":                   {txt: "Avg TTL in seconds", lbls: []string{"db"}},
 		"db_keys":                              {txt: "Total number of keys by DB", lbls: []string{"db"}},
 		"db_keys_expiring":                     {txt: "Total number of expiring keys by DB", lbls: []string{"db"}},
+		"db_keys_expired":                      {txt: "Total number of expired keys by DB", lbls: []string{"db"}},
 		"exporter_last_scrape_error":           {txt: "The last scrape error status.", lbls: []string{"err"}},
 		"instance_info":                        {txt: "Information about the kvrocks instance", lbls: []string{"role", "version", "git_sha1", "os", "tcp_port", "gcc_version", "process_id"}},
 		"last_slow_execution_duration_seconds": {txt: `The amount of time needed for last slow execution, in seconds`},
