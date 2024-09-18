@@ -13,6 +13,56 @@ go build .
 ./kvrocks_exporter --version
 ```
 
+### Arguments
+
+These mostly match the redis exporter but with "redis" replaced with "kvrocks". Please note this includes the protocol version.
+
+Usage of ./kvrocks_exporter:
+  -config-command string
+        What to use for the CONFIG command (default "CONFIG")
+  -connection-timeout string
+        Timeout for connection to Kvrocks instance (default "15s")
+  -debug
+        Output verbose debug information
+  -export-client-port
+        Whether to include the client's port when exporting the client list. Warning: including the port increases the number of metrics generated and will make your Prometheus server take up more memory
+  -include-system-metrics
+        Whether to include system metrics like e.g. kvrocks_total_system_memory_bytes
+  -is-cluster
+        Whether this is a Kvrocks cluster (Enable this if you need to fetch key level data on a Kvrocks Cluster).
+  -kvrocks.addr string
+        Address of the Kvrocks instance to scrape (default "kvrocks://localhost:6666")
+  -kvrocks.password string
+        Password of the Kvrocks instance to scrape
+  -kvrocks.password-file string
+        Password file of the Kvrocks instance to scrape
+  -log-format string
+        Log format, valid options are txt and json (default "txt")
+  -namespace string
+        Namespace for metrics (default "kvrocks")
+  -ping-on-connect
+        Whether to ping the Kvrocks instance after connecting
+  -set-client-name
+        Whether to set client name to kvrocks_exporter (default true)
+  -skip-tls-verification
+        Whether to to skip TLS verification
+  -tls-ca-cert-file string
+        Name of the CA certificate file (including full path) if the server requires TLS client authentication
+  -tls-client-cert-file string
+        Name of the client certificate file (including full path) if the server requires TLS client authentication
+  -tls-client-key-file string
+        Name of the client key file (including full path) if the server requires TLS client authentication
+  -tls-server-cert-file string
+        Name of the server certificate file (including full path) if the web interface and telemetry should use TLS
+  -tls-server-key-file string
+        Name of the server key file (including full path) if the web interface and telemetry should use TLS
+  -version
+        Show version information and exit
+  -web.listen-address string
+        Address to listen on for web interface and telemetry. (default ":9121")
+  -web.telemetry-path string
+        Path under which to expose metrics. (default "/metrics")
+
 ### Basic Prometheus Configuration
 
 Add a block to the `scrape_configs` of your prometheus.yml config file:
