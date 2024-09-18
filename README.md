@@ -17,6 +17,7 @@ go build .
 
 These mostly match the redis exporter but with "redis" replaced with "kvrocks". Please note this includes the protocol version.
 
+```
 Usage of ./kvrocks_exporter:
   -config-command string
         What to use for the CONFIG command (default "CONFIG")
@@ -62,6 +63,7 @@ Usage of ./kvrocks_exporter:
         Address to listen on for web interface and telemetry. (default ":9121")
   -web.telemetry-path string
         Path under which to expose metrics. (default "/metrics")
+```
 
 ### Basic Prometheus Configuration
 
