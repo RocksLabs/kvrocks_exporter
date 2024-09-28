@@ -63,19 +63,8 @@ upload-coverage:
 	go install github.com/mattn/goveralls@v0.0.11
 	/go/bin/goveralls -coverprofile=coverage.txt -service=drone.io
 
-
-
-BUILD_DT:=$(shell date +%F-%T)
-GO_LDFLAGS:="-s -w -extldflags \"-static\" -X main.BuildVersion=${DRONE_TAG} -X main.BuildCommitSha=${DRONE_COMMIT_SHA} -X main.BuildDate=$(BUILD_DT)" 
-OS ?= linux
-ARCH ?= amd64
-
 .PHONE: build-binaries
 build-binaries:
-	go install github.com/oliver006/gox@master
+	go install github.com/goreleaser/goreleaser/v2@latest
 
-	rm -rf .build | true
-
-	export CGO_ENABLED=0 ; \
-	gox -os=$(OS) -arch=$(ARCH) -verbose -rebuild -ldflags $(GO_LDFLAGS) -output ".build/kvrocks_exporter" && \
-	echo "done"
+	goreleaser release --clean -f .github/goreleaser.yml

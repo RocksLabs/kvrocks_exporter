@@ -1,0 +1,75 @@
+name: goreleaser
+
+on:
+  pull_request:
+  push:
+    # run only against tags
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Run GoReleaser for build
+        uses: goreleaser/goreleaser-action@v6
+        if: success() && !startsWith(github.ref, 'refs/tags/')
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          # 'latest', 'nightly', or a semver
+          version: "~> v2"
+          args: release --snapshot --clean -f ./.github/goreleaser.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub if publishing tag
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          # 'latest', 'nightly', or a semver
+          version: "~> v2"
+          args: release --clean -f ./.github/goreleaser.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: RocksLabs/kvrocks-exporter
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Upload build results
+        uses: actions/upload-artifact@v4
+        with:
+          name: kvrocks_exporter_artifacts_${{ github.run_number }}
+          path: dist/
