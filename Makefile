@@ -63,8 +63,12 @@ upload-coverage:
 	go install github.com/mattn/goveralls@v0.0.11
 	/go/bin/goveralls -coverprofile=coverage.txt -service=drone.io
 
-.PHONE: build-binaries
-build-binaries:
+.PHONY: build
+build:
+	go build .
+
+.PHONY: release
+release:
 	go install github.com/goreleaser/goreleaser/v2@latest
 
 	goreleaser release --clean -f .github/goreleaser.yml
