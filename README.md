@@ -13,6 +13,11 @@ go build .
 ./kvrocks_exporter --version
 ```
 
+### Release
+
+All releases are done via Github Actions. To create a new release, create a new Release + Tag from master.
+Actions will automatically add the release artifacts and publish new docker images to Docker hub.
+
 ### Arguments
 
 These mostly match the redis exporter but with "redis" replaced with "kvrocks". Please note this includes the protocol version.
