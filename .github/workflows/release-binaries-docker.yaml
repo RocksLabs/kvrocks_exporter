@@ -65,7 +65,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: RocksLabs/kvrocks-exporter
+          repository: kvrocks/kvrocks-exporter
           short-description: ${{ github.event.repository.description }}
 
       - name: Upload build results
