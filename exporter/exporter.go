@@ -114,6 +114,8 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 			// # Stats
 			"pubsub_channels": "pubsub_channels",
 			"pubsub_patterns": "pubsub_patterns",
+			"keyspace_hits":   "keyspace_hits",
+			"keyspace_misses": "keyspace_misses",
 
 			// # Replication
 			"connected_slaves":   "connected_slaves",
