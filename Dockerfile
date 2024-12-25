@@ -1,22 +1,23 @@
 FROM golang:1.23-alpine3.21 AS build
 
-ARG TARGETARCH
-
-RUN apk update && apk upgrade && apk add make
+ARG TARGETARCH=amd64
+ENV GOARCH=${TARGETARCH}
 
 WORKDIR /opt
 
 COPY . .
 
-RUN make build-binaries ARCH=${TARGETARCH}
+RUN go build . 
 
 FROM alpine:3.21
 
 RUN apk update && apk upgrade
 
-COPY --from=build /kvrocks_exporter/.build/kvrocks_exporter /kvrocks_exporter
+WORKDIR /opt
 
-COPY --from=build ./LICENSE /
+COPY --from=build /opt/kvrocks_exporter kvrocks_exporter
+
+COPY --from=build /opt/LICENSE .
 
 EXPOSE 9121/tcp
 
