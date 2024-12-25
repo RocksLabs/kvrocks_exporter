@@ -12,9 +12,11 @@ RUN make build-binaries ARCH=${TARGETARCH}
 
 FROM alpine:3.21
 
+RUN apk update && apk upgrade
+
 COPY --from=build /kvrocks_exporter/.build/kvrocks_exporter /kvrocks_exporter
 
-COPY ./LICENSE /
+COPY --from=build ./LICENSE /
 
 EXPOSE 9121/tcp
 
