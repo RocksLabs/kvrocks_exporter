@@ -25,7 +25,7 @@ kos:
       - "{{.Version}}"
       - latest
     preserve_import_paths: false
-    base_image: alpine:3.20
+    base_image: alpine:3.21
     bare: true 
     ldflags:
       - "-X main.BuildVersion={{ .Version }}"
