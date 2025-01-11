@@ -20,7 +20,8 @@ builds:
       - amd64
       - arm64
 kos:
-  - repository: docker.io/kvrocks/kvrocks-exporter
+  - repositories: 
+      - docker.io/kvrocks/kvrocks-exporter
     tags:
       - "{{.Version}}"
       - latest
