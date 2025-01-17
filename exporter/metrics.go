@@ -89,3 +89,14 @@ func (e *Exporter) registerConstMetric(ch chan<- prometheus.Metric, metric strin
 		ch <- m
 	}
 }
+
+func (e *Exporter) registerHist(ch chan<- prometheus.Metric, metric string, count uint64, sum float64, buckets map[float64]uint64, labelValues ...string) {
+	descr := e.metricDescriptions[metric]
+	if descr == nil {
+		descr = newMetricDescr(e.options.Namespace, metric, metric+" metric", labelValues)
+	}
+
+	if m, err := prometheus.NewConstHistogram(descr, count, sum, buckets, labelValues...); err == nil {
+		ch <- m
+	}
+}
