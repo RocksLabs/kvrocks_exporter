@@ -2,8 +2,10 @@ package exporter
 
 import (
 	"fmt"
+	"math"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -41,7 +43,7 @@ func TestKeyspaceStringParser(t *testing.T) {
 			}
 
 			if ok && (kt != tst.keysTotal || kx != tst.keysEx || ttl != tst.avgTTL || kexp != tst.keysExpired) {
-				t.Errorf("values not matching, db:%s stats:%s   %f %f %f", tst.db, tst.stats, kt, kx, ttl, kexp)
+				t.Errorf("values not matching, db:%s stats:%s   %f %f %f %f", tst.db, tst.stats, kt, kx, ttl, kexp)
 			}
 		}
 	}
@@ -234,6 +236,11 @@ func TestParseCommandStats(t *testing.T) {
 			fieldValue:  "calls=75,usec=DEF,usec_per_call=16.80",
 			wantSuccess: false,
 		},
+		{
+			fieldKey:    "cmdstat_georadius_ro",
+			fieldValue:  "calls=75,usec=DEF,usec_per_call=16.80",
+			wantSuccess: false,
+		},
 	} {
 		t.Run(tst.fieldKey+tst.fieldValue, func(t *testing.T) {
 
@@ -262,6 +269,165 @@ func TestParseCommandStats(t *testing.T) {
 			}
 			if usecTotal != tst.wantUsecTotal {
 				t.Fatalf("cmd not matching, got: %f, wanted: %f", usecTotal, tst.wantUsecTotal)
+			}
+		})
+	}
+}
+
+func TestParseCommandStatsHist(t *testing.T) {
+
+	for _, tst := range []struct {
+		fieldKey   string
+		fieldValue string
+
+		wantSuccess bool
+		wantCmd     string
+		wantBuckets map[float64]uint64
+		wantSum     uint64
+		wantCount   uint64
+	}{
+		{
+			fieldKey:    "cmdstathist_get",
+			fieldValue:  "10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=10000,count=1192",
+			wantSuccess: true,
+			wantCmd:     "get",
+			wantBuckets: map[float64]uint64{
+				0.00001:     1191,
+				0.00002:     1192,
+				0.00005:     1192,
+				0.00007:     1192,
+				0.0001:      1192,
+				0.00015:     1192,
+				math.Inf(1): 1192,
+			},
+			wantSum:   10000,
+			wantCount: 1192,
+		},
+		{
+			fieldKey:    "cmdstathist_hget",
+			fieldValue:  "",
+			wantSuccess: true,
+			wantCmd:     "hget",
+			wantBuckets: map[float64]uint64{},
+		},
+		{
+			fieldKey:    "cmdstathis_hget",
+			fieldValue:  "fd",
+			wantSuccess: false,
+			wantCmd:     "hget",
+		},
+		{
+			fieldKey:    "cmdstathist_hget",
+			fieldValue:  "fd",
+			wantSuccess: false,
+			wantCmd:     "hget",
+		},
+		{
+			fieldKey:    "cmdstathist_hget",
+			fieldValue:  "fd=malformed",
+			wantSuccess: false,
+			wantCmd:     "hget",
+		},
+		{
+			fieldKey:    "cmdstathist_get",
+			fieldValue:  "10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=,count=1192",
+			wantSuccess: false,
+			wantCmd:     "get",
+			wantBuckets: map[float64]uint64{
+				0.00001:     1191,
+				0.00002:     1192,
+				0.00005:     1192,
+				0.00007:     1192,
+				0.0001:      1192,
+				0.00015:     1192,
+				math.Inf(1): 1192,
+			},
+			wantSum:   0,
+			wantCount: 1192,
+		},
+		{
+			fieldKey:    "cmdstathist_get",
+			fieldValue:  "10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=aa,count=1192",
+			wantSuccess: false,
+			wantCmd:     "get",
+			wantBuckets: map[float64]uint64{
+				0.00001:     1191,
+				0.00002:     1192,
+				0.00005:     1192,
+				0.00007:     1192,
+				0.0001:      1192,
+				0.00015:     1192,
+				math.Inf(1): 1192,
+			},
+			wantSum:   0,
+			wantCount: 1192,
+		},
+		{
+			fieldKey:    "cmdstathist_get",
+			fieldValue:  "10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=10000,count=",
+			wantSuccess: false,
+			wantCmd:     "get",
+			wantBuckets: map[float64]uint64{
+				0.00001:     1191,
+				0.00002:     1192,
+				0.00005:     1192,
+				0.00007:     1192,
+				0.0001:      1192,
+				0.00015:     1192,
+				math.Inf(1): 1192,
+			},
+			wantSum:   10000,
+			wantCount: 0,
+		},
+		{
+			fieldKey:    "cmdstathist_get",
+			fieldValue:  "10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=10000,count=dasd",
+			wantSuccess: false,
+			wantCmd:     "get",
+			wantBuckets: map[float64]uint64{
+				0.00001:     1191,
+				0.00002:     1192,
+				0.00005:     1192,
+				0.00007:     1192,
+				0.0001:      1192,
+				0.00015:     1192,
+				math.Inf(1): 1192,
+			},
+			wantSum:   10000,
+			wantCount: 0,
+		},
+	} {
+		t.Run(tst.fieldKey+tst.fieldValue, func(t *testing.T) {
+			cmd, count, sum, buckets, err := parseMetricsCommandStatsHist(tst.fieldKey, tst.fieldValue)
+
+			if tst.wantSuccess && err != nil {
+				t.Fatalf("err: %s", err)
+				return
+			}
+
+			if !tst.wantSuccess && err == nil {
+				t.Fatalf("expected err!")
+				return
+			}
+
+			if !tst.wantSuccess {
+				return
+			}
+
+			if cmd != tst.wantCmd {
+				t.Fatalf("cmd not matching, got: %s, wanted: %s", cmd, tst.wantCmd)
+			}
+
+			if !reflect.DeepEqual(buckets, tst.wantBuckets) {
+				t.Fatalf("cmd not matching, got: %v, wanted: %v", buckets, tst.wantBuckets)
+			}
+
+			if count != tst.wantCount {
+				t.Fatalf("count not matching, got: %d, wanted: %d", count, tst.wantCount)
+			}
+
+			if sum != tst.wantSum {
+				t.Fatalf("count not matching, got: %d, wanted: %d", sum, tst.wantSum)
 			}
 		})
 	}

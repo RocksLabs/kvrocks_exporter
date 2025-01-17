@@ -3,7 +3,9 @@ package exporter
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -341,9 +343,80 @@ func parseMetricsCommandStats(fieldKey string, fieldValue string) (string, float
 	return cmd, calls, usecTotal, nil
 }
 
+func histSplit(r rune) bool {
+	return r == '=' || r == ','
+}
+
+func parseMetricsCommandStatsHist(fieldKey string, fieldValue string) (string, uint64, uint64, map[float64]uint64, error) {
+	/*
+		Format:
+		cmdstathist_get:10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=12388,count=1192
+
+		broken up like this:
+			fieldKey = cmdstathist_get
+			fieldValue = 10=1191,20=1,50=0,70=0,100=0,150=0,inf=0,sum=12388,count=1192
+	*/
+
+	const cmdPrefix = "cmdstathist_"
+
+	if !strings.HasPrefix(fieldKey, cmdPrefix) {
+		return "", 0, 0, nil, errors.New("invalid fieldKey")
+	}
+	cmd := strings.TrimPrefix(fieldKey, cmdPrefix)
+
+	splitValues := strings.FieldsFunc(fieldValue, histSplit)
+	var histogram = map[float64]uint64{}
+	var keys = make([]float64, 0, len(histogram))
+
+	if len(splitValues)%2 != 0 {
+		return "", 0, 0, nil, errors.New("uneven number of keys for bucket")
+	}
+
+	var sum, count uint64
+	var err error
+	// NB: splitValues slice is a list of tuples so iterating by 2
+	for i := 0; i < len(splitValues); i = i + 2 {
+		if splitValues[i] == "sum" {
+			sum, err = strconv.ParseUint(splitValues[i+1], 10, 64)
+			if err != nil {
+				return "", 0, 0, nil, fmt.Errorf("invalid value for sum: %w", err)
+			}
+			continue
+		}
+		if splitValues[i] == "count" {
+			count, err = strconv.ParseUint(splitValues[i+1], 10, 64)
+			if err != nil {
+				return "", 0, 0, nil, fmt.Errorf("invalid value for count: %w", err)
+			}
+			continue
+		}
+
+		bucketCount, err := strconv.ParseUint(splitValues[i+1], 10, 64)
+		if err != nil {
+			return "", 0, 0, nil, fmt.Errorf("invalid splitValue for bucket: %w", err)
+		}
+		bucketValue := math.Inf(1)
+		if val, err := strconv.ParseFloat(strings.TrimSpace(splitValues[i]), 64); err == nil {
+			bucketValue = val / 1e6
+		}
+		histogram[bucketValue] = bucketCount
+		keys = append(keys, bucketValue)
+	}
+
+	sort.Float64s(keys)
+
+	for i := 1; i < len(keys); i++ {
+		histogram[keys[i]] += histogram[keys[i-1]]
+	}
+	return cmd, count, sum, histogram, nil
+}
+
 func (e *Exporter) handleMetricsCommandStats(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	if cmd, calls, usecTotal, err := parseMetricsCommandStats(fieldKey, fieldValue); err == nil {
 		e.registerConstMetric(ch, "commands_total", calls, prometheus.CounterValue, cmd)
 		e.registerConstMetric(ch, "commands_duration_seconds_total", usecTotal/1e6, prometheus.CounterValue, cmd)
+	}
+	if cmd, count, sum, buckets, err := parseMetricsCommandStatsHist(fieldKey, fieldValue); err == nil {
+		e.registerHist(ch, "commands_duration_seconds_bucket", count, float64(sum)/1e6, buckets, cmd)
 	}
 }
