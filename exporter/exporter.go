@@ -180,6 +180,7 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		txt  string
 		lbls []string
 	}{
+		"commands_duration_seconds_bucket":     {txt: `Histogram of the amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_duration_seconds_total":      {txt: `Total amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_total":                       {txt: `Total number of calls per command`, lbls: []string{"cmd"}},
 		"connected_slave_lag_seconds":          {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state"}},
