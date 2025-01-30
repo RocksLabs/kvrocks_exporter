@@ -165,6 +165,16 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 
 			"used_cpu_sys":  "cpu_sys_seconds_total",
 			"used_cpu_user": "cpu_user_seconds_total",
+
+			// # RocksDB
+			"block_cache_hit":         "block_cache_hit_total",
+			"block_cache_miss":        "block_cache_miss_total",
+			"block_cache_data_hit":    "block_cache_data_hit_total",
+			"block_cache_data_miss":   "block_cache_data_miss_total",
+			"block_cache_index_hit":   "block_cache_index_hit_total",
+			"block_cache_index_miss":  "block_cache_index_miss_total",
+			"block_cache_filter_hit":  "block_cache_filter_hit_total",
+			"block_cache_filter_miss": "block_cache_filter_miss_total",
 		},
 	}
 
