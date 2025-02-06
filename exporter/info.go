@@ -34,13 +34,29 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 	lines := strings.Split(info, "\n")
 	masterHost := ""
 	masterPort := ""
+
+	linePrefixesToSkip := []string{
+		"# Last DBSIZE SCAN",
+		"# Last scan db time",
+		"# WARN:",
+	}
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		log.Debugf("info: %s", line)
+
 		if len(line) > 0 && strings.HasPrefix(line, "# ") {
-			if strings.HasPrefix(line, "# Last DBSIZE SCAN") {
+			skip := false
+			for _, skipPrefix := range linePrefixesToSkip {
+				if strings.HasPrefix(line, skipPrefix) {
+					skip = true
+					break
+				}
+			}
+			if skip {
 				continue
 			}
+
 			fieldClass = line[2:]
 			log.Debugf("set fieldClass: %s", fieldClass)
 			continue
