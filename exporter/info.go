@@ -46,7 +46,6 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		log.Debugf("info: %s", line)
 
 		if len(line) > 0 && strings.HasPrefix(line, "# ") {
-
 			skip := false
 			for _, skipPrefix := range linePrefixesToSkip {
 				if strings.HasPrefix(line, skipPrefix) {
@@ -54,7 +53,6 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 					break
 				}
 			}
-
 			if skip {
 				continue
 			}
