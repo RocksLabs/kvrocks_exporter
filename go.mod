@@ -2,8 +2,6 @@ module github.com/RocksLabs/kvrocks_exporter
 
 go 1.24
 
-toolchain go1.23.1
-
 require (
 	github.com/gomodule/redigo v1.9.2
 	github.com/prometheus/client_golang v1.20.5
