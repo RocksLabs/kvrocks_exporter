@@ -1,6 +1,6 @@
 module github.com/RocksLabs/kvrocks_exporter
 
-go 1.21
+go 1.24
 
 toolchain go1.23.1
 
