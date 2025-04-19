@@ -90,7 +90,7 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		case "Server":
 			e.handleMetricsServer(ch, fieldKey, fieldValue)
 
-		case "Commandstats":
+		case "Commandstats", "CommandStats":
 			e.handleMetricsCommandStats(ch, fieldKey, fieldValue)
 			continue
 
