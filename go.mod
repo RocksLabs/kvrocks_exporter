@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.23.1
 
 require (
-	github.com/gomodule/redigo v1.9.2
+	github.com/gomodule/redigo v1.9.3
 	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/sirupsen/logrus v1.9.3
