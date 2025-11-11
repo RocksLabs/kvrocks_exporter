@@ -193,7 +193,7 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		"commands_duration_seconds_bucket":     {txt: `Histogram of the amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_duration_seconds_total":      {txt: `Total amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_total":                       {txt: `Total number of calls per command`, lbls: []string{"cmd"}},
-		"connected_slave_lag_seconds":          {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state"}},
+		"connected_slave_lag":                  {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state"}},
 		"connected_slave_offset_bytes":         {txt: "Offset of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state"}},
 		"db_avg_ttl_seconds":                   {txt: "Avg TTL in seconds", lbls: []string{"db"}},
 		"db_keys":                              {txt: "Total number of keys by DB", lbls: []string{"db"}},

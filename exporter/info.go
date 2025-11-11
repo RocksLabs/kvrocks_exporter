@@ -267,7 +267,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 
 		if slaveLag > -1 {
 			e.registerConstMetricGauge(ch,
-				"connected_slave_lag_seconds",
+				"connected_slave_lag",
 				slaveLag,
 				slaveIP, slavePort, slaveState,
 			)
