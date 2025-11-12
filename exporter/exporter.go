@@ -165,6 +165,16 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 
 			"used_cpu_sys":  "cpu_sys_seconds_total",
 			"used_cpu_user": "cpu_user_seconds_total",
+
+			// # RocksDB
+			"block_cache_hit":         "block_cache_hit_total",
+			"block_cache_miss":        "block_cache_miss_total",
+			"block_cache_data_hit":    "block_cache_data_hit_total",
+			"block_cache_data_miss":   "block_cache_data_miss_total",
+			"block_cache_index_hit":   "block_cache_index_hit_total",
+			"block_cache_index_miss":  "block_cache_index_miss_total",
+			"block_cache_filter_hit":  "block_cache_filter_hit_total",
+			"block_cache_filter_miss": "block_cache_filter_miss_total",
 		},
 	}
 
@@ -180,6 +190,7 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		txt  string
 		lbls []string
 	}{
+		"commands_duration_seconds_bucket":     {txt: `Histogram of the amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_duration_seconds_total":      {txt: `Total amount of time in seconds spent per command`, lbls: []string{"cmd"}},
 		"commands_total":                       {txt: `Total number of calls per command`, lbls: []string{"cmd"}},
 		"connected_slave_lag_seconds":          {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state"}},
