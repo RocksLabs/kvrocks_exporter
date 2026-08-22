@@ -26,6 +26,7 @@ kos:
       - "{{.Version}}"
       - latest
     preserve_import_paths: false
+    base_import_paths: false
     base_image: alpine:3.21
     bare: true 
     ldflags:
