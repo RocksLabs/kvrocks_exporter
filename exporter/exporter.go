@@ -219,6 +219,7 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		"block_cache_usage":                 {txt: `The number of bytes used by the data block cache`, lbls: []string{"column_family"}},
 		"estimate_keys":                     {txt: `The estimate keys`, lbls: []string{"column_family"}},
 		"estimate_pending_compaction_bytes": {txt: `The estimated number of bytes pending for compaction`, lbls: []string{"column_family"}},
+		"num_files_at_level":                {txt: `The number of files at each level`, lbls: []string{"column_family", "level"}},
 	} {
 		e.metricDescriptions[k] = newMetricDescr(opts.Namespace, k, desc.txt, desc.lbls)
 	}
