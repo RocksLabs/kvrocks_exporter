@@ -1,7 +1,10 @@
-FROM golang:1.23-alpine3.21 AS build
+FROM golang:1.27-alpine3.24 AS build
 
 ARG TARGETARCH=amd64
 ENV GOARCH=${TARGETARCH}
+
+ENV TZ=Etc/UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /opt
 
@@ -9,9 +12,9 @@ COPY . .
 
 RUN go build . 
 
-FROM alpine:3.21
+FROM alpine:3.24
 
-RUN apk update && apk upgrade && apk add --no-cache curl
+RUN apk update && apk upgrade && apk add --no-cache ca-certificates tzdata curl && apk -v cache clean
 
 WORKDIR /opt
 
