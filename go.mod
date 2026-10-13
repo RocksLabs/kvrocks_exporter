@@ -1,6 +1,6 @@
 module github.com/RocksLabs/kvrocks_exporter
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/gomodule/redigo v1.9.3
