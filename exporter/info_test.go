@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -269,6 +270,114 @@ func TestParseCommandStats(t *testing.T) {
 			}
 			if usecTotal != tst.wantUsecTotal {
 				t.Fatalf("cmd not matching, got: %f, wanted: %f", usecTotal, tst.wantUsecTotal)
+			}
+		})
+	}
+}
+
+func TestHandleMetricsRocksDB(t *testing.T) {
+	e := &Exporter{
+		namespace:          "test",
+		metricDescriptions: map[string]*prometheus.Desc{},
+		options:            Options{Namespace: "test"},
+	}
+
+	// Initialize metric descriptions for all RocksDB metrics
+	for _, metric := range []string{
+		"block_cache_usage",
+		"block_cache_pinned_usage",
+		"index_and_filter_cache_usage",
+		"estimate_keys",
+		"level0_file_limit_slowdown",
+		"level0_file_limit_stop",
+		"pending_compaction_bytes_slowdown",
+		"pending_compaction_bytes_stop",
+		"memtable_count_limit_slowdown",
+		"memtable_count_limit_stop",
+		"estimate_pending_compaction_bytes",
+	} {
+		e.metricDescriptions[metric] = newMetricDescr("test", metric, "test metric", []string{"column_family"})
+	}
+	e.metricDescriptions["num_files_at_level"] = newMetricDescr("test", "num_files_at_level", "test metric", []string{"column_family", "level"})
+
+	for _, tst := range []struct {
+		fieldKey    string
+		fieldValue  string
+		wantSuccess bool
+		wantLabels  []map[string]string
+	}{
+		// Shared metric (no column family)
+		{fieldKey: "block_cache_usage", fieldValue: "2352699808", wantSuccess: true},
+		// Metrics with column families
+		{fieldKey: "estimate_keys[default]:", fieldValue: "877780692", wantSuccess: true},
+		{fieldKey: "estimate_keys[metadata]:", fieldValue: "137466612", wantSuccess: true},
+		{fieldKey: "block_cache_pinned_usage[default]:", fieldValue: "3279920", wantSuccess: true},
+		{fieldKey: "index_and_filter_cache_usage[search]:", fieldValue: "852223", wantSuccess: true},
+		{fieldKey: "pending_compaction_bytes_slowdown[default]:", fieldValue: "56", wantSuccess: true},
+		{fieldKey: "memtable_count_limit_stop[metadata]:", fieldValue: "0", wantSuccess: true},
+		{fieldKey: "estimate_pending_compaction_bytes[default]:", fieldValue: "253026582751", wantSuccess: true},
+		{fieldKey: "estimate_pending_compaction_bytes[search]:", fieldValue: "1301854178", wantSuccess: true},
+		{fieldKey: "num_files_at_level[default]", fieldValue: "[0,0,0,0,0,0,261]", wantSuccess: true, wantLabels: []map[string]string{
+			{"column_family": "default", "level": "0"},
+			{"column_family": "default", "level": "6"},
+		}},
+		{fieldKey: "num_files_at_level[search]", fieldValue: "[0,0,0,0,0,0,0]", wantSuccess: true, wantLabels: []map[string]string{
+			{"column_family": "search", "level": "0"},
+			{"column_family": "search", "level": "6"},
+		}},
+		// Invalid/bad data cases
+		{fieldKey: "unknown_metric[default]:", fieldValue: "100", wantSuccess: false},
+		{fieldKey: "estimate_keys[default]:", fieldValue: "not_a_number", wantSuccess: false},
+	} {
+		t.Run(tst.fieldKey+tst.fieldValue, func(t *testing.T) {
+			chM := make(chan prometheus.Metric, 16)
+			e.handleMetricsRocksDB(chM, tst.fieldKey, tst.fieldValue)
+			close(chM)
+
+			metricCount := 0
+			var gotLabels []map[string]string
+			for m := range chM {
+				metricCount++
+				g := &dto.Metric{}
+				m.Write(g)
+				labels := map[string]string{}
+				for _, lp := range g.GetLabel() {
+					labels[lp.GetName()] = lp.GetValue()
+				}
+				gotLabels = append(gotLabels, labels)
+			}
+
+			if tst.wantSuccess && metricCount == 0 {
+				t.Fatalf("expected metric to be emitted but got none")
+			}
+			if !tst.wantSuccess && metricCount > 0 {
+				t.Fatalf("expected no metric but got %d", metricCount)
+			}
+			for _, want := range tst.wantLabels {
+				found := false
+				for _, got := range gotLabels {
+					match := true
+					for k, v := range want {
+						if got[k] != v {
+							match = false
+							break
+						}
+					}
+					if match {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("no metric with labels %v, got %v", want, gotLabels)
+				}
+			}
+
+			if tst.wantSuccess && metricCount == 0 {
+				t.Fatalf("expected metric to be emitted but got none")
+			}
+			if !tst.wantSuccess && metricCount > 0 {
+				t.Fatalf("expected no metric but got %d", metricCount)
 			}
 		})
 	}

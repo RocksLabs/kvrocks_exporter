@@ -214,10 +214,12 @@ func NewKvrocksExporter(kvrocksURI string, opts Options) (*Exporter, error) {
 		"start_time_seconds":                   {txt: "Start time of the kvrocks instance since unix epoch in seconds."},
 		"up":                                   {txt: "Information about the kvrocks instance"},
 
-		"index_and_filter_cache_usage": {txt: `The number of bytes used by the index and filter block cache`, lbls: []string{"column_family"}},
-		"block_cache_pinned_usage":     {txt: `The number of bytes used by the pinned block cache`, lbls: []string{"column_family"}},
-		"block_cache_usage":            {txt: `The number of bytes used by the data block cache`, lbls: []string{"column_family"}},
-		"estimate_keys":                {txt: `The estimate keys`, lbls: []string{"column_family"}},
+		"index_and_filter_cache_usage":      {txt: `The number of bytes used by the index and filter block cache`, lbls: []string{"column_family"}},
+		"block_cache_pinned_usage":          {txt: `The number of bytes used by the pinned block cache`, lbls: []string{"column_family"}},
+		"block_cache_usage":                 {txt: `The number of bytes used by the data block cache`, lbls: []string{"column_family"}},
+		"estimate_keys":                     {txt: `The estimate keys`, lbls: []string{"column_family"}},
+		"estimate_pending_compaction_bytes": {txt: `The estimated number of bytes pending for compaction`, lbls: []string{"column_family"}},
+		"num_files_at_level":                {txt: `The number of files at each level`, lbls: []string{"column_family", "level"}},
 	} {
 		e.metricDescriptions[k] = newMetricDescr(opts.Namespace, k, desc.txt, desc.lbls)
 	}

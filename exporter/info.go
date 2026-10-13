@@ -291,10 +291,26 @@ func (e *Exporter) handleMetricsRocksDB(ch chan<- prometheus.Metric, fieldKey st
 		}
 	}
 
+	if strings.HasPrefix(fieldKey, "num_files_at_level[") {
+		fields := strings.Split(fieldKey, "[")
+		if len(fields) != 2 {
+			return
+		}
+		columnFamily := strings.TrimRight(fields[1], "]")
+		// format like `num_files_at_level[default]:[0,0,0,0,0,0,261]`
+		for level, v := range strings.Split(strings.Trim(fieldValue, "[]"), ",") {
+			if n, err := strconv.ParseFloat(v, 64); err == nil {
+				e.registerConstMetricGauge(ch, "num_files_at_level", n, columnFamily, strconv.Itoa(level))
+			}
+		}
+		return
+	}
+
 	prefixs := []string{
 		"block_cache_usage", "block_cache_pinned_usage", "index_and_filter_cache_usage", "estimate_keys",
 		"level0_file_limit_slowdown", "level0_file_limit_stop", "pending_compaction_bytes_slowdown",
 		"pending_compaction_bytes_stop", "memtable_count_limit_slowdown", "memtable_count_limit_stop",
+		"estimate_pending_compaction_bytes",
 	}
 	for _, prefix := range prefixs {
 		// format like `estimate_keys[default]:0`
