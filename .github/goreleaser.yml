@@ -20,14 +20,15 @@ builds:
       - amd64
       - arm64
 kos:
-  - repositories: 
+  - main: .
+    repositories:
       - docker.io/kvrocks/kvrocks-exporter
     tags:
       - "{{.Version}}"
       - latest
     preserve_import_paths: false
     base_image: alpine:3.21
-    bare: true 
+    bare: true
     ldflags:
       - "-X main.BuildVersion={{ .Version }}"
       - "-X main.BuildDate={{.Date}}"
