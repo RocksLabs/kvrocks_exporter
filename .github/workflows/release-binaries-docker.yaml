@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: stable
 
       - name: Run GoReleaser for build
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         if: success() && !startsWith(github.ref, 'refs/tags/')
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
@@ -39,16 +39,16 @@ jobs:
 
       - name: Set up Docker Buildx
         if: success() && startsWith(github.ref, 'refs/tags/')
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Login to Docker Hub if publishing tag
         if: success() && startsWith(github.ref, 'refs/tags/')
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -69,7 +69,7 @@ jobs:
           short-description: ${{ github.event.repository.description }}
 
       - name: Upload build results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kvrocks_exporter_artifacts_${{ github.run_number }}
           path: dist/
