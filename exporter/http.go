@@ -54,6 +54,10 @@ func (e *Exporter) scrapeHandler(w http.ResponseWriter, r *http.Request) {
 
 	opts := e.options
 
+	if password := r.URL.Query().Get("password"); password != "" {
+		opts.Password = password
+	}
+
 	registry := prometheus.NewRegistry()
 	opts.Registry = registry
 
