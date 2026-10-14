@@ -1,6 +1,6 @@
 FROM golang:1.27-alpine3.24 AS build
 
-ARG TARGETARCH=amd64
+ARG TARGETARCH
 ENV GOARCH=${TARGETARCH}
 
 ENV TZ=Etc/UTC
@@ -26,4 +26,4 @@ EXPOSE 9121/tcp
 
 HEALTHCHECK --interval=30s --timeout=1s --start-period=5s --retries=3 CMD curl --fail -s http://localhost:9121/health | grep 'ok' || exit 1
 
-ENTRYPOINT [ "/kvrocks_exporter" ]
+ENTRYPOINT [ "/opt/kvrocks_exporter" ]
