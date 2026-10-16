@@ -1,6 +1,18 @@
 name: goreleaser
 
 on:
+  workflow_call:
+    inputs:
+      runner_x86:
+        description: 'The runner to use for x86 builds'
+        required: false
+        type: string
+        default: ubuntu-24.04
+      runner_arm:
+        description: 'The runner to use for arm64 builds'
+        required: false
+        type: string
+        default: ubuntu-24.04-arm
   pull_request:
   push:
     # run only against tags
@@ -64,15 +76,21 @@ jobs:
           name: kvrocks_exporter_artifacts_${{ github.run_number }}
           path: dist/
 
+  # Each leg pushes an arch-suffixed tag, e.g. <tag>-amd64 / <tag>-arm64.
   docker:
-    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ${{ inputs.runner_x86 || 'ubuntu-24.04' }}
+            arch: amd64
+          - os: ${{ inputs.runner_arm || 'ubuntu-24.04-arm' }}
+            arch: arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -90,13 +108,14 @@ jobs:
           images: docker.io/kvrocks/kvrocks-exporter
           tags: |
             type=ref,event=tag
-            type=raw,value=latest
+          flavor: |
+            suffix=-${{ matrix.arch }}
 
-      - name: Build and push
+      - name: Build and push arch image
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -104,3 +123,30 @@ jobs:
             VERSION=${{ github.ref_name }}
             BUILD_DATE=${{ steps.meta.outputs.created }}
             COMMIT_SHA=${{ github.sha }}
+
+  # Combine the arch images into one multi-arch manifest.
+  # Keep the arch list in sync with the docker job's matrix above.
+  merge:
+    needs: docker
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create manifest list and push
+        run: |
+          docker buildx imagetools create \
+            -t docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }} \
+            -t docker.io/kvrocks/kvrocks-exporter:latest \
+            docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}-amd64 \
+            docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}-arm64
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}
