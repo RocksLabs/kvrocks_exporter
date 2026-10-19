@@ -1,6 +1,9 @@
 FROM golang:1.27-alpine3.24 AS build
 
 ARG TARGETARCH
+ARG VERSION
+ARG BUILD_DATE
+ARG COMMIT_SHA
 ENV GOARCH=${TARGETARCH}
 
 ENV TZ=Etc/UTC
@@ -10,7 +13,7 @@ WORKDIR /opt
 
 COPY . .
 
-RUN go build . 
+RUN go build -ldflags "-X main.BuildVersion=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.BuildCommitSha=${COMMIT_SHA}" .
 
 FROM alpine:3.24
 
