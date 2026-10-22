@@ -12,7 +12,7 @@ on:
         description: 'The runner to use for arm64 builds'
         required: false
         type: string
-        default: ubuntu-latest-arm
+        default: ubuntu-24.04-arm
   pull_request:
   push:
     # run only against tags
@@ -86,7 +86,7 @@ jobs:
             platform: linux/amd64
             tag-suffix: amd64
 
-          - runner: ${{ inputs.runner_arm || 'ubuntu-latest-arm' }}
+          - runner: ${{ inputs.runner_arm || 'ubuntu-24.04-arm' }}
             platform: linux/arm64
             tag-suffix: arm64
     runs-on: ${{ matrix.runner }}
