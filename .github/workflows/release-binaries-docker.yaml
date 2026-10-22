@@ -19,13 +19,19 @@ on:
     tags:
       - "*"
 
-permissions:
-  contents: write
-  packages: write
+# Superseded PR runs are cancelled; tag runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE_NAME: docker.io/kvrocks/kvrocks-exporter
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,11 +41,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run GoReleaser for build
         uses: goreleaser/goreleaser-action@v7
-        if: success() && !startsWith(github.ref, 'refs/tags/')
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
@@ -51,102 +57,121 @@ jobs:
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
-        if: success() && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
           # 'latest', 'nightly', or a semver
           version: "~> v2"
-          args: release --clean --skip=ko -f ./.github/goreleaser.yml
+          args: release --clean -f ./.github/goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker Hub Description
+      # Tag builds are already attached to the GitHub release.
+      - name: Upload build results
+        uses: actions/upload-artifact@v7
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: kvrocks_exporter_artifacts_${{ github.run_number }}
+          path: dist/
+
+  # Builds the image on every run so Dockerfile breakage surfaces in PRs,
+  # but only pushes on tags.
+  build-image:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ${{ inputs.runner_x86 || 'ubuntu-24.04' }}
+            platform: linux/amd64
+            tag-suffix: amd64
+
+          - runner: ${{ inputs.runner_arm || 'ubuntu-24.04-arm' }}
+            platform: linux/arm64
+            tag-suffix: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: set up Docker image builder
+        uses: docker/setup-buildx-action@v4
+
+      - name: log in to Docker Hub
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: check out codebase
+        uses: actions/checkout@v7
+
+      # Image tags drop the "v" prefix of the git tag (1.0.12, not v1.0.12) to
+      # match the images published so far and the GoReleaser binary version.
+      # PR builds are never pushed, so they just use the short commit SHA.
+      - name: compute image version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "build-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:cache-${{ matrix.tag-suffix }}
+          # Writing the cache needs the Docker Hub login, which only tag builds have.
+          cache-to: ${{ startsWith(github.ref, 'refs/tags/') && format('type=registry,ref={0}:cache-{1},mode=max', env.IMAGE_NAME, matrix.tag-suffix) || '' }}
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.build-date }}
+            COMMIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest-${{ matrix.tag-suffix }}
+            ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}-${{ matrix.tag-suffix }}
+
+  merge-manifests:
+    needs: build-image
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: set up Docker image builder
+        uses: docker/setup-buildx-action@v4
+
+      - name: log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: create and push multi-arch manifests
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          docker buildx imagetools create -t ${{ env.IMAGE_NAME }}:latest \
+            ${{ env.IMAGE_NAME }}:latest-amd64 \
+            ${{ env.IMAGE_NAME }}:latest-arm64
+
+          docker buildx imagetools create -t ${{ env.IMAGE_NAME }}:${VERSION} \
+            ${{ env.IMAGE_NAME }}:${VERSION}-amd64 \
+            ${{ env.IMAGE_NAME }}:${VERSION}-arm64
+
+      - name: check out codebase
+        uses: actions/checkout@v7
+
+      - name: update Docker Hub description
         uses: peter-evans/dockerhub-description@v5
-        if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: kvrocks/kvrocks-exporter
           short-description: ${{ github.event.repository.description }}
-
-      - name: Upload build results
-        uses: actions/upload-artifact@v7
-        with:
-          name: kvrocks_exporter_artifacts_${{ github.run_number }}
-          path: dist/
-
-  # Each leg pushes an arch-suffixed tag, e.g. <tag>-amd64 / <tag>-arm64.
-  docker:
-    if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ${{ inputs.runner_x86 || 'ubuntu-24.04' }}
-            arch: amd64
-          - os: ${{ inputs.runner_arm || 'ubuntu-24.04-arm' }}
-            arch: arm64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: docker.io/kvrocks/kvrocks-exporter
-          tags: |
-            type=ref,event=tag
-          flavor: |
-            suffix=-${{ matrix.arch }}
-
-      - name: Build and push arch image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/${{ matrix.arch }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ github.ref_name }}
-            BUILD_DATE=${{ steps.meta.outputs.created }}
-            COMMIT_SHA=${{ github.sha }}
-
-  # Combine the arch images into one multi-arch manifest.
-  # Keep the arch list in sync with the docker job's matrix above.
-  merge:
-    needs: docker
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Create manifest list and push
-        run: |
-          docker buildx imagetools create \
-            -t docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }} \
-            -t docker.io/kvrocks/kvrocks-exporter:latest \
-            docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}-amd64 \
-            docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}-arm64
-
-      - name: Inspect image
-        run: docker buildx imagetools inspect docker.io/kvrocks/kvrocks-exporter:${{ github.ref_name }}
