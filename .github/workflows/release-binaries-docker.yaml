@@ -7,12 +7,12 @@ on:
         description: 'The runner to use for x86 builds'
         required: false
         type: string
-        default: ubuntu-24.04
+        default: ubuntu-latest
       runner_arm:
         description: 'The runner to use for arm64 builds'
         required: false
         type: string
-        default: ubuntu-24.04-arm
+        default: ubuntu-latest-arm
   pull_request:
   push:
     # run only against tags
@@ -82,11 +82,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ${{ inputs.runner_x86 || 'ubuntu-24.04' }}
+          - runner: ${{ inputs.runner_x86 || 'ubuntu-latest' }}
             platform: linux/amd64
             tag-suffix: amd64
 
-          - runner: ${{ inputs.runner_arm || 'ubuntu-24.04-arm' }}
+          - runner: ${{ inputs.runner_arm || 'ubuntu-latest-arm' }}
             platform: linux/arm64
             tag-suffix: arm64
     runs-on: ${{ matrix.runner }}
@@ -140,7 +140,7 @@ jobs:
   merge-manifests:
     needs: build-image
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
